@@ -21,6 +21,6 @@ main(Args) ->
 config() ->
     [
         {project_plugins, [
-            {rebar3_sbom, {git, "https://github.com/stritzinger/rebar3_sbom.git", {branch, "master"}}}
+            {rebar3_sbom, {git, "https://github.com/stritzinger/rebar3_sbom.git", {branch, "main"}}}
         ]}
     ].
