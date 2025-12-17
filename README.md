@@ -5,7 +5,7 @@
 
 # bombom
 
-A standalone Erlang escript that wraps [rebar3](https://www.rebar3.org/) and automatically injects the [rebar3_sbom](https://github.com/stritzinger/rebar3_sbom) plugin as a dependency into any rebar3 project, providing a convenient way to generate Software Bill of Materials (SBOM) for Erlang/OTP projects.
+A standalone Erlang escript that wraps [rebar3](https://www.rebar3.org/) and automatically injects [rebar3_sbom](https://github.com/stritzinger/rebar3_sbom) plugin into the runtime configuration of any rebar3 project, providing a convenient way to generate Software Bill of Materials (SBOM) for Erlang/OTP projects.
 
 ## Overview
 
@@ -125,19 +125,6 @@ The bundled binary includes:
 This makes `bombom.bin` completely independent of system libraries and Erlang installations, making it ideal for CI/CD environments where you want zero-configuration SBOM generation.
 
 ## Configuration
-
-### Logging
-
-Control logging verbosity using environment variables:
-
-- `QUIET=1`: Show only errors
-- `DEBUG=1`: Enable debug logging
-- `DIAGNOSTIC=1`: Enable diagnostic logging
-
-Example:
-```bash
-$ DEBUG=1 bombom
-```
 
 ### Global Configuration
 
