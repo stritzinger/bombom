@@ -9,17 +9,17 @@ A standalone Erlang escript that wraps [rebar3](https://www.rebar3.org/) and aut
 
 ## Overview
 
-`bombom` is a self-contained executable that combines rebar3 with the SBOM plugin, allowing you to generate SBOM files for your Erlang projects without needing to manually install or configure the plugin. It automatically injects the `rebar3_sbom` plugin as a dependency into any rebar3 project it's invoked in, providing a streamlined interface for SBOM generation.
+`bombom` is an escript that combines rebar3 with the SBOM plugin, allowing you to generate SBOM files for your Erlang projects without needing to manually install or configure the plugin. It automatically injects the `rebar3_sbom` plugin as a dependency into any rebar3 project it's invoked in, providing a streamlined interface for SBOM generation.
 
 The project provides two distribution formats:
 - **`bombom` escript**: The standard Erlang escript that requires Erlang/OTP to be installed
-- **`bombom.bin`**: A fully self-contained binary bundle that includes OTP 28.2 and all dependencies, compiled with musl-libc for maximum portability
+- **`bombom.bin`**: A fully self-contained binary bundle that includes OTP and all dependencies, compiled with musl-libc for maximum portability. The binary is assembled using [Piadina](https://github.com/stritzinger/piadina), a generic launcher tooling that automatically installs and executes a payload attached to itself
 
 ## Features
 
 - **Standalone executable**: No need to install rebar3 or plugins separately
 - **Automatic dependency injection**: Automatically injects `rebar3_sbom` as a dependency into any rebar3 project
-- **Rebar3-compatible execution**: Uses rebar3 internally and respects standard rebar3 project layouts, profiles, and configuration
+- **Rebar3-compatible execution**: Uses rebar3 internally and respects standard rebar3 project layouts and configuration
 - **Environment-based logging**: Control verbosity via environment variables
 - **CI/CD ready**: `bombom.bin` requires no configuration or extra tooling for CI/CD integration
 - **Portable binary**: `bombom.bin` works on any x86/64 Linux distribution without requiring libc compatibility
@@ -29,7 +29,7 @@ The project provides two distribution formats:
 ### Using the Bundled Binary (Recommended for CI/CD)
 
 The `bombom.bin` executable is a fully self-contained binary that includes:
-- OTP 28.2 runtime
+- OTP runtime
 - rebar3 and all dependencies
 - Automatic installation and execution
 
@@ -112,12 +112,10 @@ For reproducible builds, the plugin reference is intended to be pinned to a spec
 
 ### Bundled Binary Architecture
 
-The `bombom.bin` executable is assembled using reusable tooling:
-- **[Piadina](https://github.com/stritzinger/piadina)**: A generic launcher that automatically installs and executes a payload attached to itself
-- **Azdora**: A packaging application that assembles the final executable
+The `bombom.bin` executable is assembled using [Piadina](https://github.com/stritzinger/piadina), a generic launcher tooling that automatically installs and executes a payload attached to itself. For details on how the binary is built and assembled, see the [Piadina repository](https://github.com/stritzinger/piadina).
 
 The bundled binary includes:
-- OTP 28.2 runtime (compiled with musl-libc)
+- OTP runtime (compiled with musl-libc)
 - All rebar3 dependencies
 - The bombom escript
 - All required libraries
@@ -173,15 +171,17 @@ RUN curl -L https://github.com/stritzinger/bombom/releases/download/${BOMBOM_VER
 ## Dependencies
 
 ### For the Escript Version
-- **rebar3**: Bundled as a dependency (version 3.25.1)
+- **rebar3**: Bundled as a dependency
 - **rebar3_sbom plugin**: Automatically fetched from GitHub
 - **Erlang/OTP**: Must be installed on the system
 
 ### For the Bundled Binary
-- **OTP 28.2**: Included in the binary
+- **OTP**: Included in the binary
 - **rebar3**: Included in the binary
 - **rebar3_sbom plugin**: Automatically fetched from GitHub
 - **All system dependencies**: Compiled with musl-libc, no external dependencies
+
+**Note:** Specific versions of OTP and rebar3 included in `bombom.bin` are documented in the release descriptions, as they may change in future builds.
 
 ## License
 
