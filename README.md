@@ -40,8 +40,6 @@ The `bombom.bin` executable is a fully self-contained binary that includes:
 - ✅ Zero configuration needed for CI/CD environments
 - ✅ Seamlessly forwards all arguments to rebar3_sbom
 
-**Note:** The `bombom.bin` binary is assembled using [Piadina](https://github.com/stritzinger/piadina), a generic launcher tooling. For details on how the binary is built, see the Piadina repository.
-
 Simply download and execute:
 ```bash
 $ ./bombom.bin [sbom options]
