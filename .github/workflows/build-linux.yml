@@ -1,0 +1,201 @@
+name: Build bombom.bin - (linux)
+
+on:
+  workflow_call:
+    inputs:
+      otp_version:
+        type: string
+        required: true
+
+      arch:
+        type: string
+        required: false
+        default: "amd64" # amd64 | arm64
+
+      openssl_version:
+        type: string
+        required: false
+        default: "3.5.1"
+
+      musl_version:
+        type: string
+        required: false
+        default: "1.2.5"
+
+      bombom_ref:
+        type: string
+        required: false
+        default: "main"
+
+      bombom_repo_url:
+        type: string
+        required: false
+        default: "https://github.com/stritzinger/bombom.git"
+
+      piadina_repo_url:
+        type: string
+        required: false
+        default: "https://github.com/stritzinger/piadina.git"
+
+      piadina_ref:
+        type: string
+        required: false
+        default: "main"
+
+      # URL defaults
+      otp_cdn_base_url:
+        type: string
+        required: false
+        default: "https://beam-machine-universal.b-cdn.net"
+
+      beammachine_home_url:
+        type: string
+        required: false
+        default: "https://beammachine.cloud/"
+
+      rebar3_url:
+        type: string
+        required: false
+        default: "https://s3.amazonaws.com/rebar3/rebar3"
+
+jobs:
+  build:
+    runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-latest' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            curl ca-certificates git build-essential python3 \
+            autoconf automake libtool \
+            libcbor-dev libarchive-dev
+
+      - name: Install rebar3
+        run: |
+          curl -fL "${{ inputs.rebar3_url }}" -o rebar3
+          chmod +x rebar3
+          sudo mv rebar3 /usr/local/bin/rebar3
+          rebar3 --version || true
+
+      - name: Derive arch + URLs + output name
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OTP="${{ inputs.otp_version }}"
+          ARCH_IN="${{ inputs.arch }}"
+          if [[ -z "$ARCH_IN" ]]; then ARCH_IN="amd64"; fi
+
+          case "$ARCH_IN" in
+            amd64) BM_ARCH="x86_64" ; OUT_ARCH="amd64" ; NEEDLE_ARCH="x86_64" ;;
+            arm64) BM_ARCH="aarch64"; OUT_ARCH="arm64" ; NEEDLE_ARCH="aarch64" ;;
+            *) echo "Unsupported arch: $ARCH_IN (use amd64 or arm64)" >&2; exit 1 ;;
+          esac
+
+          echo "OTP_VERSION=$OTP" >> "$GITHUB_ENV"
+          echo "BM_ARCH=$BM_ARCH" >> "$GITHUB_ENV"
+          echo "OUT_ARCH=$OUT_ARCH" >> "$GITHUB_ENV"
+          echo "NEEDLE_ARCH=$NEEDLE_ARCH" >> "$GITHUB_ENV"
+
+          echo "BOMBOM_REF=${{ inputs.bombom_ref }}" >> "$GITHUB_ENV"
+          echo "BOMBOM_REPO_URL=${{ inputs.bombom_repo_url }}" >> "$GITHUB_ENV"
+          echo "PIADINA_REPO_URL=${{ inputs.piadina_repo_url }}" >> "$GITHUB_ENV"
+          echo "PIADINA_REF=${{ inputs.piadina_ref }}" >> "$GITHUB_ENV"
+
+          OPENSSL="${{ inputs.openssl_version }}"
+          MUSLVER="${{ inputs.musl_version }}"
+
+          OTP_BASE="${{ inputs.otp_cdn_base_url }}"
+          echo "OTP_CDN_BASE_URL=$OTP_BASE" >> "$GITHUB_ENV"
+
+          # Construct tarball URL from base + inputs (more stable than letting callers pass full URL)
+          echo "OTP_TARBALL_URL=${OTP_BASE}/OTP-${OTP}/linux/${BM_ARCH}/any/otp_${OTP}_linux_any_${BM_ARCH}.tar.gz?please-respect-my-bandwidth-costs=thank-you&openssl=${OPENSSL}&musl=${MUSLVER}" >> "$GITHUB_ENV"
+
+          echo "BEAMMACHINE_HOME_URL=${{ inputs.beammachine_home_url }}" >> "$GITHUB_ENV"
+
+          echo "OUTPUT=bombom-linux-${OUT_ARCH}.bin" >> "$GITHUB_ENV"
+
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            echo "APP_VER=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            echo "APP_VER=dev-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Resolve musl runtime URL
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          HOME_URL="${{ env.BEAMMACHINE_HOME_URL }}"
+          HTML="$(curl -fsSL --max-time 20 --retry 3 --retry-delay 2 --retry-all-errors "$HOME_URL")"
+          export HTML
+          export NEEDLE_ARCH="${{ env.NEEDLE_ARCH }}"
+          export HOME_URL
+
+          MUSL_URL="$(python3 - <<'PY'
+          import os, re, sys, html as htmllib
+          from urllib.parse import urljoin
+
+          base = os.environ["HOME_URL"]
+          page = os.environ["HTML"]
+          needle = os.environ["NEEDLE_ARCH"].lower()
+
+          anchors = re.findall(
+            r'<a\s+[^>]*href="([^"]+)"[^>]*>(.*?)</a>',
+            page,
+            flags=re.IGNORECASE | re.DOTALL
+          )
+
+          def norm(s: str) -> str:
+            s = re.sub(r"<[^>]+>", " ", s)
+            s = htmllib.unescape(s)
+            return re.sub(r"\s+", " ", s).strip().lower()
+
+          for href, inner in anchors:
+            href_u = htmllib.unescape(href)
+            hay = (href_u + " " + norm(inner)).lower()
+            if "runtime" in hay and needle in hay:
+              print(urljoin(base, href_u))
+              sys.exit(0)
+
+          sys.exit(1)
+          PY
+          )" || {
+            echo "Could not find musl runtime URL for arch: ${{ env.NEEDLE_ARCH }}" >&2
+            exit 1
+          }
+
+          # Validate URL is reachable (HEAD)
+          curl -fsSI --max-time 20 "$MUSL_URL" >/dev/null || {
+            echo "musl runtime URL not reachable: $MUSL_URL" >&2
+            exit 1
+          }
+
+          echo "MUSL_SO_URL=$MUSL_URL" >> "$GITHUB_ENV"
+
+      - name: Build bombom.bin
+        env:
+          OTP_TARBALL_URL: ${{ env.OTP_TARBALL_URL }}
+          MUSL_SO_URL: ${{ env.MUSL_SO_URL }}
+          OUTPUT: ${{ env.OUTPUT }}
+          APP_VER: ${{ env.APP_VER }}
+          OTP_VERSION: ${{ env.OTP_VERSION }}
+
+          BOMBOM_REF: ${{ env.BOMBOM_REF }}
+          BOMBOM_REPO_URL: ${{ env.BOMBOM_REPO_URL }}
+          PIADINA_REPO_URL: ${{ env.PIADINA_REPO_URL }}
+          PIADINA_REF: ${{ env.PIADINA_REF }}
+        run: |
+          chmod +x scripts/build-linux.sh
+          ./scripts/build-linux.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.OUTPUT }}
+          path: |
+            dist/${{ env.OUTPUT }}
+            dist/${{ env.OUTPUT }}.sha256

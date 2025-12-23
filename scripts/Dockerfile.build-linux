@@ -1,0 +1,23 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install packages with retry logic to handle QEMU segmentation faults
+# QEMU emulation can be unstable, especially for arm64 on amd64 hosts
+RUN for i in 1 2 3; do \
+      apt-get update && \
+      apt-get install -y --no-install-recommends \
+        curl ca-certificates git build-essential python3 \
+        autoconf automake libtool \
+        libcbor-dev libarchive-dev && \
+      rm -rf /var/lib/apt/lists/* && \
+      break || sleep 5; \
+    done
+
+# rebar3 installed at container start (so you can override REBAR3_URL without rebuild),
+# but we include a tiny entrypoint-friendly location.
+RUN mkdir -p /usr/local/bin
+
+WORKDIR /work
+
+# Keep container minimal; the runner script installs rebar3 and runs /work scripts.

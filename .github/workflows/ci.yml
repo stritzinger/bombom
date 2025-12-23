@@ -1,0 +1,30 @@
+name: Test build (linux amd64 + arm64)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "test-ci-build"
+      - "test-ci-build/**"
+      - "feat/ci-build"
+      - "feat/ci-build/**"
+  pull_request:
+    branches:
+      - "main"
+
+jobs:
+  build-amd64:
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      otp_version: "28.1.1"
+      arch: "amd64"
+      bombom_ref: "main"
+      piadina_ref: "main"
+
+  build-arm64:
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      otp_version: "28.1.1"
+      arch: "arm64"
+      bombom_ref: "main"
+      piadina_ref: "main"

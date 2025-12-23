@@ -1,0 +1,55 @@
+name: Release build (linux amd64 + arm64)
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-amd64:
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      otp_version: "28.1.1"
+      arch: "amd64"
+      bombom_ref: ${{ github.ref_name }}
+      piadina_ref: "main"
+    secrets: inherit
+
+  build-arm64:
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      otp_version: "28.1.1"
+      arch: "arm64"
+      bombom_ref: ${{ github.ref_name }}
+      piadina_ref: "main"
+    secrets: inherit
+
+  attach-to-release:
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download amd64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bombom-linux-amd64.bin
+          path: dist/amd64
+
+      - name: Download arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bombom-linux-arm64.bin
+          path: dist/arm64
+
+      - name: Attach binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/amd64/bombom-linux-amd64.bin
+            dist/amd64/bombom-linux-amd64.bin.sha256
+            dist/arm64/bombom-linux-arm64.bin
+            dist/arm64/bombom-linux-arm64.bin.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
