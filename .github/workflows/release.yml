@@ -1,8 +1,16 @@
-name: Release build (linux amd64 + arm64)
+name: Release
 
 on:
+  push:
+    tags:
+      - "*.*.*"
   release:
     types: [created]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build-amd64:
@@ -10,41 +18,67 @@ jobs:
     with:
       otp_version: "28.1.1"
       arch: "amd64"
-      bombom_ref: ${{ github.ref_name }}
+      # If triggered by GitHub Release, build from that tag; otherwise build from pushed tag.
+      bombom_ref: ${{ github.event.release.tag_name || github.ref_name }}
       piadina_ref: "main"
-    secrets: inherit
+      attest: true
 
   build-arm64:
     uses: ./.github/workflows/build-linux.yml
     with:
       otp_version: "28.1.1"
       arch: "arm64"
-      bombom_ref: ${{ github.ref_name }}
+      bombom_ref: ${{ github.event.release.tag_name || github.ref_name }}
       piadina_ref: "main"
-    secrets: inherit
+      attest: true
 
-  attach-to-release:
-    needs: [build-amd64, build-arm64]
+  publish:
+    name: Publish release assets
+    needs:
+      - build-amd64
+      - build-arm64
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download amd64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: bombom-linux-amd64.bin
-          path: dist/amd64
+          name: linux-amd64
+          path: .
 
       - name: Download arm64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: bombom-linux-arm64.bin
-          path: dist/arm64
+          name: linux-arm64
+          path: .
 
-      - name: Attach binaries to release
+      - name: Verify artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Release tag: ${RELEASE_TAG}"
+
+          test -f dist/amd64/bombom-linux-amd64.bin
+          test -f dist/amd64/bombom-linux-amd64.bin.sha256
+          test -f dist/amd64/bombom-linux-amd64.bin.sigstore
+
+          test -f dist/arm64/bombom-linux-arm64.bin
+          test -f dist/arm64/bombom-linux-arm64.bin.sha256
+          test -f dist/arm64/bombom-linux-arm64.bin.sigstore
+
+          ls -lh dist/amd64
+          ls -lh dist/arm64
+
+      - name: Upload assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
           files: |
             dist/amd64/bombom-linux-amd64.bin
             dist/amd64/bombom-linux-amd64.bin.sha256
@@ -52,6 +86,3 @@ jobs:
             dist/arm64/bombom-linux-arm64.bin
             dist/arm64/bombom-linux-arm64.bin.sha256
             dist/arm64/bombom-linux-arm64.bin.sigstore
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

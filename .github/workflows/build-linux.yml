@@ -119,7 +119,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.OUTPUT }}-${{ env.ARCH_IN }}
+          name: linux-${{ env.ARCH_IN }}
           path: |
             dist/${{ env.ARCH_IN }}/${{ env.OUTPUT }}
             dist/${{ env.ARCH_IN }}/${{ env.OUTPUT }}.sha256
