@@ -5,7 +5,7 @@
 
 # bombom
 
-A standalone Erlang escript that wraps [rebar3](https://www.rebar3.org/) and automatically injects [rebar3_sbom](https://github.com/stritzinger/rebar3_sbom) plugin into the runtime configuration of any rebar3 project, providing a convenient way to generate Software Bill of Materials (SBOM) for Erlang/OTP projects.
+A standalone Erlang escript that wraps [rebar3](https://www.rebar3.org/) and automatically injects [rebar3_sbom](https://github.com/erlef/rebar3_sbom) plugin into the runtime configuration of any rebar3 project, providing a convenient way to generate Software Bill of Materials (SBOM) for Erlang/OTP projects.
 
 ## Overview
 
@@ -105,7 +105,7 @@ The process works as follows:
 4. Executes the `sbom` command with your provided arguments
 
 The plugin is automatically fetched from:
-- Repository: `https://github.com/stritzinger/rebar3_sbom.git`
+- Repository: `https://github.com/erlef/rebar3_sbom.git`
 - Default reference: `main`
 
 For reproducible builds, the plugin reference is intended to be pinned to a specific tag or commit in future releases. The current default prioritizes ease of development.
@@ -150,7 +150,7 @@ Your project's `rebar.config` will be automatically loaded and merged with the p
 ```yaml
 - name: Generate SBOM
   run: |
-    wget https://github.com/stritzinger/bombom/releases/latest/download/bombom.bin
+    wget https://github.com/erlef/bombom/releases/latest/download/bombom.bin
     chmod +x bombom.bin
     ./bombom.bin
 ```
@@ -161,8 +161,8 @@ Your project's `rebar.config` will be automatically loaded and merged with the p
 
 ```dockerfile
 ARG BOMBOM_VERSION
-RUN curl -L https://github.com/stritzinger/bombom/releases/download/${BOMBOM_VERSION}/bombom.bin -o /usr/local/bin/bombom \
-    && curl -L "https://github.com/stritzinger/bombom/releases/download/${BOMBOM_VERSION}/bombom.bin.sha256" -o /tmp/bombom.sha256 \
+RUN curl -L https://github.com/erlef/bombom/releases/download/${BOMBOM_VERSION}/bombom.bin -o /usr/local/bin/bombom \
+    && curl -L "https://github.com/erlef/bombom/releases/download/${BOMBOM_VERSION}/bombom.bin.sha256" -o /tmp/bombom.sha256 \
     && shasum -a 256 -c /tmp/bombom.sha256 \
     && chmod +x /usr/local/bin/bombom \
     && rm /tmp/bombom.sha256
@@ -190,5 +190,5 @@ Licensed under the Apache License 2.0. See [LICENSE.md](LICENSE.md) for details.
 ## See Also
 
 - [rebar3 Documentation](https://www.rebar3.org/docs)
-- [rebar3_sbom Plugin](https://github.com/stritzinger/rebar3_sbom)
+- [rebar3_sbom Plugin](https://github.com/erlef/rebar3_sbom)
 - [Piadina](https://github.com/stritzinger/piadina) - Generic launcher tooling

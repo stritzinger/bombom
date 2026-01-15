@@ -14,5 +14,5 @@ and this project adheres to
 
 - Wrap rebar3 and rebar3_sbom in escript
 
-[Unreleased]: https://github.com/stritzinger/bombom/compare/1.0.0...HEAD
-[1.0.0]: https://github.com/stritzinger/bombom/releases/tag/1.0.0
+[Unreleased]: https://github.com/erlef/bombom/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/erlef/bombom/releases/tag/1.0.0
