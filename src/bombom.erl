@@ -23,7 +23,7 @@ main(Args) ->
 %%====================================================================
 
 rebar3_sbom_plugin() ->
-    {rebar3_sbom, {git, "https://github.com/stritzinger/rebar3_sbom.git", {branch, "main"}}}.
+    {rebar3_sbom, "0.9.0-beta.1"}.
 
 init_config() ->
     rebar_utils:set_httpc_options(),
