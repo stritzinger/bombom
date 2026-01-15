@@ -2,8 +2,8 @@
 """
 Resolve musl runtime URL by scraping the beammachine page.
 
-This script searches for anchor tags in HTML content that match "runtime"
-and the specified architecture needle, then outputs the resolved URL.
+This script reads HTML content from stdin, parses anchor tags, and
+resolves the musl runtime download URL matching the given architecture.
 """
 
 import argparse
@@ -23,92 +23,73 @@ def normalize_text(text: str) -> str:
 
 def resolve_musl_runtime_url(html: str, home_url: str, needle_arch: str) -> str:
     """
-    Find the musl runtime URL from HTML content.
-    
+    Parse HTML content to find the musl runtime URL.
+
     Args:
-        html: HTML content to search
-        home_url: Base URL for resolving relative URLs
-        needle_arch: Architecture to search for (e.g., "x86_64", "aarch64")
-    
+        html: HTML content to parse
+        home_url: Base URL for resolving relative links
+        needle_arch: Architecture to match (e.g. "x86_64", "aarch64")
+
     Returns:
-        Resolved URL string
-    
+        Resolved musl runtime URL
+
     Raises:
-        SystemExit: Exits with code 1 if URL cannot be found
+        ValueError: If no matching runtime URL can be found
     """
     needle = needle_arch.lower()
-    
-    # Find all anchor tags with href attributes
+
     anchors = re.findall(
-        r"<a\s+[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>",
+        r"<a\s+[^>]*href=['\"]([^'\"]+)['\"][^>]*>(.*?)</a>",
         html,
-        flags=re.IGNORECASE | re.DOTALL
+        flags=re.IGNORECASE | re.DOTALL,
     )
-    
-    # Search for anchors matching "runtime" and the architecture needle
+
     for href, inner in anchors:
         href_unescaped = htmllib.unescape(href)
-        haystack = (href_unescaped + " " + normalize_text(inner)).lower()
+        haystack = href_unescaped.lower() + " " + normalize_text(inner)
+
         if "runtime" in haystack and needle in haystack:
-            resolved_url = urljoin(home_url, href_unescaped)
-            return resolved_url
-    
-    # URL not found
-    sys.exit(1)
+            return urljoin(home_url, href_unescaped)
+
+    raise ValueError(f"Could not find musl runtime URL for arch: {needle_arch}")
 
 
-def main():
-    """Main entry point for the script."""
+def main() -> None:
+    """CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Resolve musl runtime URL from HTML content"
-    )
-    parser.add_argument(
-        "--html",
-        type=str,
-        help="HTML content to search (can also be provided via HTML environment variable or stdin)"
+        description="Resolve musl runtime URL from HTML read on stdin"
     )
     parser.add_argument(
         "--home-url",
         type=str,
-        help="Base URL for resolving relative URLs (can also be provided via HOME_URL environment variable)"
+        help="Base URL for resolving relative links (or set HOME_URL)",
     )
     parser.add_argument(
         "--needle-arch",
         type=str,
-        help="Architecture to search for (can also be provided via NEEDLE_ARCH environment variable)"
+        help="Architecture to match (or set NEEDLE_ARCH)",
     )
-    
+
     args = parser.parse_args()
-    
-    # Get HTML content from argument, environment variable, or stdin
-    if args.html:
-        html = args.html
-    elif "HTML" in os.environ:
-        html = os.environ["HTML"]
-    elif not sys.stdin.isatty():
-        html = sys.stdin.read()
-    else:
-        parser.error("HTML content must be provided via --html, HTML environment variable, or stdin")
-    
-    # Get HOME_URL from argument or environment variable
+
+    if sys.stdin.isatty():
+        parser.error("HTML content must be provided via stdin")
+
+    html = sys.stdin.read()
+
     home_url = args.home_url or os.environ.get("HOME_URL")
     if not home_url:
-        parser.error("HOME_URL must be provided via --home-url or HOME_URL environment variable")
-    
-    # Get NEEDLE_ARCH from argument or environment variable
+        parser.error("HOME_URL must be provided via --home-url or HOME_URL")
+
     needle_arch = args.needle_arch or os.environ.get("NEEDLE_ARCH")
     if not needle_arch:
-        parser.error("NEEDLE_ARCH must be provided via --needle-arch or NEEDLE_ARCH environment variable")
-    
-    # Resolve and output the URL
+        parser.error("NEEDLE_ARCH must be provided via --needle-arch or NEEDLE_ARCH")
+
     try:
         url = resolve_musl_runtime_url(html, home_url, needle_arch)
         print(url)
-        sys.exit(0)
-    except SystemExit:
-        raise
-    except Exception as e:
-        print(f"Error resolving musl runtime URL: {e}", file=sys.stderr)
+    except Exception as exc:
+        print(f"Error resolving musl runtime URL: {exc}", file=sys.stderr)
         sys.exit(1)
 
 
