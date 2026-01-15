@@ -2,8 +2,8 @@
 """
 Resolve musl runtime URL by scraping the beammachine page.
 
-This script reads HTML content from stdin, parses anchor tags, and
-resolves the musl runtime download URL matching the given architecture.
+This script reads HTML content from stdin (if piped) or from a positional argument,
+parses anchor tags, and resolves the musl runtime download URL matching the given architecture.
 """
 
 import argparse
@@ -19,6 +19,8 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text)
     text = htmllib.unescape(text)
     return re.sub(r"\s+", " ", text).strip().lower()
+
+
 
 
 def resolve_musl_runtime_url(html: str, home_url: str, needle_arch: str) -> str:
@@ -57,7 +59,14 @@ def resolve_musl_runtime_url(html: str, home_url: str, needle_arch: str) -> str:
 def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Resolve musl runtime URL from HTML read on stdin"
+        description="Resolve musl runtime URL from HTML content"
+    )
+    parser.add_argument(
+        "html",
+        nargs="?",
+        type=str,
+        default=sys.stdin if not sys.stdin.isatty() else None,
+        help="HTML content to parse (reads from stdin if not provided)",
     )
     parser.add_argument(
         "--home-url",
@@ -72,10 +81,17 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if sys.stdin.isatty():
-        parser.error("HTML content must be provided via stdin")
-
-    html = sys.stdin.read()
+    # Handle HTML input: if default was sys.stdin, read from it; otherwise use provided value
+    if args.html is sys.stdin:
+        html = sys.stdin.read()
+    elif args.html is not None:
+        html = args.html
+    else:
+        # No argument and stdin is a TTY
+        parser.error("HTML content must be provided via stdin or as a positional argument")
+    
+    if not html:
+        parser.error("HTML content is empty")
 
     home_url = args.home_url or os.environ.get("HOME_URL")
     if not home_url:
@@ -89,8 +105,7 @@ def main() -> None:
         url = resolve_musl_runtime_url(html, home_url, needle_arch)
         print(url)
     except Exception as exc:
-        print(f"Error resolving musl runtime URL: {exc}", file=sys.stderr)
-        sys.exit(1)
+        parser.error(f"Error resolving musl runtime URL: {exc}")
 
 
 if __name__ == "__main__":
