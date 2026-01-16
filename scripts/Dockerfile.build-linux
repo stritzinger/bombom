@@ -9,7 +9,7 @@ RUN for i in 1 2 3; do \
       apt-get install -y --no-install-recommends \
         curl ca-certificates git build-essential python3 \
         autoconf automake libtool \
-        libcbor-dev libarchive-dev && \
+        musl-dev musl-tools && \
       rm -rf /var/lib/apt/lists/* && \
       break || sleep 5; \
     done

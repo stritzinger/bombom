@@ -89,7 +89,7 @@ def main() -> None:
     else:
         # No argument and stdin is a TTY
         parser.error("HTML content must be provided via stdin or as a positional argument")
-    
+
     if not html:
         parser.error("HTML content is empty")
 
