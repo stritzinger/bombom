@@ -270,7 +270,6 @@ build_bombom() {
 
   validate_command_exists rebar3 "expected to be installed by container/workflow wrapper"
 
-  whereis escript || true
   (cd "$WORK/bombom-src" && PATH="$OTP_ROOT/bin:$OTP_ROOT/$ERTS_DIR/bin:$PATH" rebar3 escriptize)
 
   BOMBOM_ESCRIPT="$WORK/bombom-src/_build/default/bin/bombom"
