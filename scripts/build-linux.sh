@@ -295,6 +295,7 @@ assemble_payload() {
 
   # Copy musl runtime to payload root (used by patching)
   cp -a "$WORK/libc-musl.so" "$PAYLOAD_DIR/"
+  chmod +x "$PAYLOAD_DIR/libc-musl.so"
 
   # Remove epmd link if present (PDF Step 5)
   rm -f "$PAYLOAD_DIR/bin/epmd"
