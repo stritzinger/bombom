@@ -3,7 +3,7 @@
 
 {application, bombom, [
     {description, "An escript"},
-    {vsn, "1.0.2"},
+    {vsn, "1.0.3"},
     {registered, []},
     {applications, [
         kernel,
