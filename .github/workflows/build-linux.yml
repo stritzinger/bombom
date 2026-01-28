@@ -18,6 +18,9 @@ on:
         description: Whether to attest the build provenance
         required: false
         default: false
+  push:
+    branches:
+      - "gl/use-cassone-in-ci"
 
 permissions:
   contents: read
