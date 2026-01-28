@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/build-linux.yml
     with:
       otp_version: "28.1.1"
+      rebar_version: "3.26.0"
       attest: true
 
   publish:
